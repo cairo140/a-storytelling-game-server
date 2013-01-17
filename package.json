@@ -1,0 +1,10 @@
+{
+    "name": "a-storytelling-game-server"
+  , "version": "0.0.1"
+  , "private": true
+  , "dependencies": {
+    "socket.io": ">= 0.0.1"
+    , "supervisor": ">= 0.0.1"
+    , "redis": ">= 0.0.1"
+  }
+}
