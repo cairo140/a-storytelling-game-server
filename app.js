@@ -8,7 +8,7 @@ AStorytellingGame.on('connection', function(ws) {
     console.log('Received: %s', message);
     ws.send(message);
   });
-  ws.send('Connected!');
+  ws.send(JSON.stringify({"status":"success"}));
 });
 
 console.log('Server started.');
