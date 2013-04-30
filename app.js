@@ -1,4 +1,5 @@
 var redis = require('redis');
+var redisClient = redis.createClient();
 var ws = require('ws')
 var WebSocketServer = ws.Server
 
