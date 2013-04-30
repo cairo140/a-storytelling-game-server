@@ -8,7 +8,8 @@ if (process.env.REDISTOGO_URL) {
 var ws = require('ws');
 var WebSocketServer = ws.Server;
 
-var AStorytellingGame = new WebSocketServer({port: process.env.PORT || 8080});
+var port = process.env.PORT || 8080
+var AStorytellingGame = new WebSocketServer({port: port});
 AStorytellingGame.on('connection', function(ws) {
   ws.on('message', function(message) {
     console.log('Received: %s', message);
@@ -17,4 +18,4 @@ AStorytellingGame.on('connection', function(ws) {
   ws.send(JSON.stringify({"status":"success"}));
 });
 
-console.log('Server started.');
+console.log('Server started on port ' + port + '.');
