@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "ws": ">= 0.0.1",
-    "redis": ">= 0.0.1"
+    "redis": ">= 0.0.1",
+    "redis-url": ">= 0.1.0"
   }
 }
