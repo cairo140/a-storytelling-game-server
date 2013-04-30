@@ -8,7 +8,7 @@ if (process.env.REDISTOGO_URL) {
 var ws = require('ws');
 var WebSocketServer = ws.Server;
 
-var AStorytellingGame = new WebSocketServer({port: 8080});
+var AStorytellingGame = new WebSocketServer({port: process.env.PORT || 8080});
 AStorytellingGame.on('connection', function(ws) {
   ws.on('message', function(message) {
     console.log('Received: %s', message);
