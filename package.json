@@ -5,6 +5,7 @@
   "dependencies": {
     "ws": ">= 0.0.1",
     "redis": ">= 0.0.1",
-    "redis-url": ">= 0.1.0"
+    "redis-url": ">= 0.1.0",
+    "coffee-script": ">= 0.0.1"
   }
 }
