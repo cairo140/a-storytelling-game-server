@@ -12,4 +12,5 @@ Dependencies
 Instructions
 ------------
 
-    nodejs app.js
+    npm install
+    ./node_modules/.bin/coffee app.coffee
