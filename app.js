@@ -63,7 +63,7 @@ AStorytellingGameServer.on('connection', function(ws) {
   var log = function() {
     args = ['[%s] %s'];
     args.push(clientId);
-    args = args.concat(Array.prototype.slice.call(arguments, 0));
+    args.push(util.format.apply(util, Array.prototype.slice.call(arguments, 0)));
     console.log.apply(this, args);
   };
   log('Client connected.');
@@ -71,7 +71,7 @@ AStorytellingGameServer.on('connection', function(ws) {
     try {
       var messageObj = JSON.parse(message);
     } catch(e) {
-      log('Failed to parse message: ' + e);
+      log('Failed to parse message: %s', e);
       ws.send(JSON.stringify({
         code: 'clientError',
         message: 'I could not parse your JSON.'
@@ -80,7 +80,7 @@ AStorytellingGameServer.on('connection', function(ws) {
     }
     switch(messageObj.code) {
       case 'identifyResponse':
-        log('Received identification response as', messageObj.name);
+        log('Received identification response as %s', messageObj.name);
         if (AStorytellingGameServer.pendingGame === null) {
           var newGame = new Game();
           console.log('Provisioned new game %d.', newGame.id);
@@ -107,7 +107,7 @@ AStorytellingGameServer.on('connection', function(ws) {
         });
         break;
       default:
-        log('Unrecognized code ', messageObj.code);
+        log('Unrecognized code %s', messageObj.code);
     }
   });
   ws.send(JSON.stringify({
