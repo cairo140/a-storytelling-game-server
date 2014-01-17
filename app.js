@@ -74,7 +74,7 @@ AStorytellingGameServer.on('connection', function(ws) {
     }
     switch(messageObj.code) {
       case 'identifyResponse':
-        log('Received identification response as %s', messageObj.name);
+        log('Received identification response as ', messageObj.name);
         if (AStorytellingGameServer.pendingGame === null) {
           AStorytellingGameServer.pendingGame = new Game();
           AStorytellingGameServer.on(Game.FULL, function() {
@@ -89,9 +89,15 @@ AStorytellingGameServer.on('connection', function(ws) {
           code: 'gameUpdate',
           game: game.getState()
         }));
+        game.on(Game.PLAYER_JOINED, function() {
+          ws.send(JSON.stringify({
+            code: 'gameUpdate',
+            game: game.getState()
+          }));
+        });
         break;
       default:
-        log('Unrecognized code %s', messageObj.code);
+        log('Unrecognized code ', messageObj.code);
     }
   });
   ws.send(JSON.stringify({
