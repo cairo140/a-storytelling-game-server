@@ -30,27 +30,45 @@ Game.prototype.addPlayer = function(player) {
     this.emit(Game.FULL);
   }
 };
-Game.prototype.getState = function() {
+Game.prototype.getState = function(player) {
   return {
-    currentRound : {
-                     submissions: this.currentRound.getVotingState()
-                   },
+    currentRound : this.currentRound.getVotingState(player),
     id: this.id,
     players: this.players.map(function(player) {
                return player.getState();
              }),
     pastRounds: this.pastRounds.map(function(round) {
-                  return {
-                    submissions: this.round.getFullState()
-                  };
+                  return this.round.getHistoryState()
                 })
   }
 };
 
 var Round = function() {};
 Round.prototype.submissions = [];
-Round.prototype.getVotingState = function() {
+Round.prototype.getVotingState = function(player) {
   return {
+    submissions: this.submissions.map(function(sub) {
+                   var obj = {
+                     content: submission.content,
+                     id: submission.id,
+                   };
+                   if (submission.player === player) {
+                     obj[player] = player.id;
+                   }
+                   return obj;
+                 })
+  }
+}
+Round.prototype.getHistoryState = function() {
+  return {
+    submissions: this.submissions.map(function(sub) {
+                   return {
+                     content: submission.content,
+                     id: submission.id,
+                     player: submission.player.id,
+                     score: submission.score
+                   };
+                 })
   }
 }
 
