@@ -14,12 +14,24 @@ var AStorytellingGameServer = new WebSocketServer({port: port});
 AStorytellingGameServer.pendingGame = null;
 AStorytellingGameServer.on('connection', function(ws) {
   var clientId = clientIdIncrementer++;
-  var log = function(message) {
-    console.log.call(this, '[%s] %s', Array.prototype.slice.call(arguments, 1));
+  var log = function() {
+    args = ['[%s] %s'];
+    args.push(clientId);
+    args = args.concat(Array.prototype.slice.call(arguments, 0));
+    console.log.apply(this, args);
   };
   log('Client connected.');
   ws.on('message', function(message) {
-    var messageObj = JSON.parse(message);
+    try {
+      var messageObj = JSON.parse(message);
+    } catch(e) {
+      log('Failed to parse message: ' + e);
+      ws.send(JSON.stringify({
+        code: 'clientError',
+        message: 'I could not parse your JSON.'
+      }));
+      return;
+    }
     switch(messageObj.code) {
       case 'identifyResponse':
         log('Received identification response as %s', messageObj.name);
