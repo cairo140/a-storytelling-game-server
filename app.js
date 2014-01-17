@@ -12,14 +12,16 @@ var clientIdIncrementer = 0;
 var Game = function() {
   this.id = Game.idIncrementer++;
   this.players = [];
-  this.rounds = [];
+  this.pastRounds = [];
+  this.currentRound = new Round();
 };
 util.inherits(Game, EventEmitter);
 Game.idIncrementer = 0;
 Game.FULL = 'FULL';
 Game.PLAYER_JOINED = 'PLAYER_JOINED';
 Game.prototype.players = null;
-Game.prototype.rounds = null;
+Game.prototype.pastRounds = null;
+Game.prototype.currentRound = null;
 Game.prototype.voting = false;
 Game.prototype.addPlayer = function(player) {
   this.players.push(player);
@@ -30,15 +32,27 @@ Game.prototype.addPlayer = function(player) {
 };
 Game.prototype.getState = function() {
   return {
+    currentRound : {
+                     submissions: this.currentRound.getVotingState()
+                   },
     id: this.id,
     players: this.players.map(function(player) {
                return player.getState();
-             })
+             }),
+    pastRounds: this.pastRounds.map(function(round) {
+                  return {
+                    submissions: this.round.getFullState()
+                  };
+                })
   }
 };
 
 var Round = function() {};
 Round.prototype.submissions = [];
+Round.prototype.getVotingState = function() {
+  return {
+  }
+}
 
 var Player = function() {
   this.id = Player.idIncrementer++;
@@ -70,8 +84,7 @@ AStorytellingGameServer.on('connection', function(ws) {
     args.push(util.format.apply(util, Array.prototype.slice.call(arguments, 0)));
     console.log.apply(this, args);
   };
-  var currentPlayer = new Player();
-  log('Player %d connected.', currentPlayer.id);
+  log('Client connected.');
   ws.on('message', function(message) {
     try {
       var messageObj = JSON.parse(message);
@@ -96,9 +109,14 @@ AStorytellingGameServer.on('connection', function(ws) {
           });
           AStorytellingGameServer.pendingGame = newGame;
         }
+        var currentPlayer = new Player();
         currentPlayer.name = messageObj.name;
         var game = AStorytellingGameServer.pendingGame;
         game.addPlayer(currentPlayer);
+        ws.send(JSON.stringify({
+          code: 'currentPlayerUpdate',
+          player: currentPlayer.getState()
+        }));
         ws.send(JSON.stringify({
           code: 'gameUpdate',
           game: game.getState()
@@ -109,6 +127,10 @@ AStorytellingGameServer.on('connection', function(ws) {
             game: game.getState()
           }));
         });
+        ws.send(JSON.stringify({
+          code: 'submissionRequested',
+          game: game.getState()
+        }));
         break;
       default:
         log('Unrecognized code %s', messageObj.code);
@@ -116,7 +138,6 @@ AStorytellingGameServer.on('connection', function(ws) {
   });
   ws.send(JSON.stringify({
     code: 'identify',
-    currentPlayer: currentPlayer.getState(),
     message: 'Please identify yourself. Send a response like {"code":"identifyResponse","name":"Bill Clinton"}'
   }));
 });
