@@ -40,12 +40,16 @@ Game.prototype.getState = function() {
 var Round = function() {};
 Round.prototype.submissions = [];
 
-var Player = function() {};
+var Player = function() {
+  this.id = Player.idIncrementer++;
+};
+Player.idIncrementer = 0;
 Player.prototype.name = '';
 // this is a denormalized value and can be derived from the round submission scores
 Player.prototype.score = 0;
 Player.prototype.getState = function() {
   return {
+    id: this.id,
     name: this.name,
     score: this.score
   }
@@ -66,7 +70,8 @@ AStorytellingGameServer.on('connection', function(ws) {
     args.push(util.format.apply(util, Array.prototype.slice.call(arguments, 0)));
     console.log.apply(this, args);
   };
-  log('Client connected.');
+  var currentPlayer = new Player();
+  log('Player %d connected.', currentPlayer.id);
   ws.on('message', function(message) {
     try {
       var messageObj = JSON.parse(message);
@@ -91,7 +96,6 @@ AStorytellingGameServer.on('connection', function(ws) {
           });
           AStorytellingGameServer.pendingGame = newGame;
         }
-        var currentPlayer = new Player();
         currentPlayer.name = messageObj.name;
         var game = AStorytellingGameServer.pendingGame;
         game.addPlayer(currentPlayer);
@@ -112,6 +116,7 @@ AStorytellingGameServer.on('connection', function(ws) {
   });
   ws.send(JSON.stringify({
     code: 'identify',
+    currentPlayer: currentPlayer.getState(),
     message: 'Please identify yourself. Send a response like {"code":"identifyResponse","name":"Bill Clinton"}'
   }));
 });
