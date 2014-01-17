@@ -19,6 +19,7 @@ util.inherits(Game, EventEmitter);
 Game.idIncrementer = 0;
 Game.FULL = 'FULL';
 Game.PLAYER_JOINED = 'PLAYER_JOINED';
+Game.UPDATE = 'UPDATE';
 Game.prototype.players = null;
 Game.prototype.pastRounds = null;
 Game.prototype.currentRound = null;
@@ -47,13 +48,13 @@ var Round = function() {};
 Round.prototype.submissions = [];
 Round.prototype.getVotingState = function(player) {
   return {
-    submissions: this.submissions.map(function(sub) {
+    submissions: this.submissions.map(function(submission) {
                    var obj = {
                      content: submission.content,
                      id: submission.id,
                    };
                    if (submission.player === player) {
-                     obj[player] = player.id;
+                     obj['player'] = player.id;
                    }
                    return obj;
                  })
@@ -61,7 +62,7 @@ Round.prototype.getVotingState = function(player) {
 }
 Round.prototype.getHistoryState = function() {
   return {
-    submissions: this.submissions.map(function(sub) {
+    submissions: this.submissions.map(function(submission) {
                    return {
                      content: submission.content,
                      id: submission.id,
@@ -95,6 +96,8 @@ Submission.prototype.score = 0;
 var AStorytellingGameServer = new WebSocketServer({port: port});
 AStorytellingGameServer.pendingGame = null;
 AStorytellingGameServer.on('connection', function(ws) {
+  var currentPlayer;
+  var currentGame;
   var clientId = clientIdIncrementer++;
   var log = function() {
     args = ['[%s] %s'];
@@ -127,28 +130,42 @@ AStorytellingGameServer.on('connection', function(ws) {
           });
           AStorytellingGameServer.pendingGame = newGame;
         }
-        var currentPlayer = new Player();
+        currentPlayer = new Player();
         currentPlayer.name = messageObj.name;
-        var game = AStorytellingGameServer.pendingGame;
-        game.addPlayer(currentPlayer);
+        currentGame = AStorytellingGameServer.pendingGame;
         ws.send(JSON.stringify({
           code: 'currentPlayerUpdate',
           player: currentPlayer.getState()
         }));
-        ws.send(JSON.stringify({
-          code: 'gameUpdate',
-          game: game.getState()
-        }));
-        game.on(Game.PLAYER_JOINED, function() {
+        currentGame.on(Game.PLAYER_JOINED, function() {
           ws.send(JSON.stringify({
-            code: 'gameUpdate',
-            game: game.getState()
+            code: 'playerJoined',
+            game: currentGame.getState()
           }));
         });
-        ws.send(JSON.stringify({
-          code: 'submissionRequested',
-          game: game.getState()
-        }));
+        currentGame.on(Game.UPDATE, function() {
+          ws.send(JSON.stringify({
+            code: 'update',
+            game: currentGame.getState()
+          }));
+        });
+        currentGame.on(Game.FULL, function() {
+          ws.send(JSON.stringify({
+            code: 'submit',
+            message: 'Please submit your content. Send a response like {"code":"submitResponse","content":"Dr. Frankenstein was busy at work."}',
+            game: currentGame.getState()
+          }));
+        });
+        currentGame.addPlayer(currentPlayer);
+        break;
+      case 'submitResponse':
+        var submission = new Submission();
+        submission.player = currentPlayer;
+        submission.content = messageObj.content;
+        currentGame.currentRound.submissions.push(submission);
+        currentGame.emit(Game.UPDATE);
+        break;
+      case 'voteResponse':
         break;
       default:
         log('Unrecognized code %s', messageObj.code);
