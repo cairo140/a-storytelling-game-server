@@ -15,7 +15,7 @@ AStorytellingGameServer.pendingGame = null;
 AStorytellingGameServer.on('connection', function(ws) {
   var clientId = clientIdIncrementer++;
   var log = function(message) {
-    console.log.call(this, '[%s] %s', arguments.slice(1));
+    console.log.call(this, '[%s] %s', Array.prototype.slice.call(arguments, 1));
   };
   log('Client connected.');
   ws.on('message', function(message) {
