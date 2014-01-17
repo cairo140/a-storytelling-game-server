@@ -9,12 +9,17 @@ var port = process.env.PORT || 8080
 
 var clientIdIncrementer = 0;
 
-var Game = function() {};
+var Game = function() {
+  this.id = Game.idIncrementer++;
+  this.players = [];
+  this.rounds = [];
+};
 util.inherits(Game, EventEmitter);
+Game.idIncrementer = 0;
 Game.FULL = 'FULL';
 Game.PLAYER_JOINED = 'PLAYER_JOINED';
-Game.prototype.players = [];
-Game.prototype.rounds = [];
+Game.prototype.players = null;
+Game.prototype.rounds = null;
 Game.prototype.voting = false;
 Game.prototype.addPlayer = function(player) {
   this.players.push(player);
@@ -25,6 +30,7 @@ Game.prototype.addPlayer = function(player) {
 };
 Game.prototype.getState = function() {
   return {
+    id: this.id,
     players: this.players.map(function(player) {
                return player.getState();
              })
@@ -74,12 +80,16 @@ AStorytellingGameServer.on('connection', function(ws) {
     }
     switch(messageObj.code) {
       case 'identifyResponse':
-        log('Received identification response as ', messageObj.name);
+        log('Received identification response as', messageObj.name);
         if (AStorytellingGameServer.pendingGame === null) {
-          AStorytellingGameServer.pendingGame = new Game();
-          AStorytellingGameServer.on(Game.FULL, function() {
+          var newGame = new Game();
+          console.log('Provisioned new game %d.', newGame.id);
+          newGame.on(Game.FULL, function() {
+            var roster = newGame.players.map(function(p) { return p.name; }).join(', ')
+            console.log('Game %d is now full. Players:', newGame.id, roster);
             AStorytellingGameServer.pendingGame = null;
           });
+          AStorytellingGameServer.pendingGame = newGame;
         }
         var currentPlayer = new Player();
         currentPlayer.name = messageObj.name;
