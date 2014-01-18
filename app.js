@@ -46,7 +46,8 @@ Game.prototype.getNumExpectedSubmissions = function() {
 };
 Game.prototype.getState = function(player) {
   return {
-    currentRound : this.currentRound === null ? null : this.currentRound.getVotingState(player),
+    currentRound: this.currentRound === null ? null : this.currentRound.getVotingState(player),
+    finished: this.finished,
     id: this.id,
     players: this.players.map(function(player) {
                return player.getState();
