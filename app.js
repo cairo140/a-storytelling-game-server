@@ -45,7 +45,7 @@ Game.prototype.getState = function(player) {
     players: this.players.map(function(player) {
                return player.getState();
              }),
-    pastRounds: [{content: 'It was a dark and stormy night.'}].concat(
+    pastRounds: [{submissions:[{content: 'It was a dark and stormy night.'}]}].concat(
                     this.pastRounds.map(function(round) {
                       return this.round.getHistoryState()
                     })
