@@ -22,7 +22,7 @@ util.inherits(Game, EventEmitter);
 Game.idIncrementer = 0;
 Game.FULL = 'FULL';
 Game.PLAYER_JOINED = 'PLAYER_JOINED';
-Game.UPDATE = 'UPDATE';
+Game.SUBMISSION_RECEIVED = 'SUBMISSION_RECEIVED';
 Game.prototype.players = null;
 Game.prototype.pastRounds = null;
 Game.prototype.currentRound = null;
@@ -149,7 +149,7 @@ AStorytellingGameServer.on('connection', function(ws) {
             game: currentGame.getState()
           }));
         });
-        currentGame.on(Game.UPDATE, function() {
+        currentGame.on(Game.SUBMISSION_RECEIVED, function() {
           ws.send(JSON.stringify({
             code: 'gameUpdate',
             game: currentGame.getState()
@@ -165,11 +165,19 @@ AStorytellingGameServer.on('connection', function(ws) {
         currentGame.addPlayer(currentPlayer);
         break;
       case 'submitResponse':
-        var submission = new Submission();
-        submission.player = currentPlayer;
-        submission.content = messageObj.content;
-        currentGame.currentRound.submissions.push(submission);
-        currentGame.emit(Game.UPDATE);
+        console.log(currentGame.currentRound.submissions);
+        if (currentGame.currentRound.submissions.some(function(s) { return s.player === currentPlayer })) {
+          ws.send(JSON.stringify({
+            code: 'submitRejected',
+            message: 'You have already submitted.'
+          }));
+        } else {
+          var submission = new Submission();
+          submission.player = currentPlayer;
+          submission.content = messageObj.content;
+          currentGame.currentRound.submissions.push(submission);
+          currentGame.emit(Game.SUBMISSION_RECEIVED);
+        }
         break;
       case 'voteResponse':
         break;
