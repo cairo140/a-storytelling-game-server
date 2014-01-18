@@ -8,6 +8,9 @@ var WebSocketServer = require('ws').Server;
 var EventEmitter = require('events').EventEmitter;
 var util = require("util");
 var FULL_GAME_SIZE = 3;
+// max game length = WINNING_SCORE
+// min game length = WINNING_SCORE / (FULL_GAME_SIZE - 1)
+var WINNING_SCORE = (FULL_GAME_SIZE - 1) * 5;
 var port = process.env.PORT || 8080
 
 var clientIdIncrementer = 1;
@@ -19,20 +22,23 @@ var Game = function() {
 };
 util.inherits(Game, EventEmitter);
 Game.idIncrementer = 1;
+Game.FINISHED = 'FINISHED';
 Game.FULL = 'FULL';
 Game.PLAYER_JOINED = 'PLAYER_JOINED';
+Game.SUBMISSIONS_REQUESTED = 'SUBMISSIONS_REQUESTED';
 Game.SUBMISSION_RECEIVED = 'SUBMISSION_RECEIVED';
 Game.VOTES_REQUESTED = 'VOTES_REQUESTED';
 Game.VOTE_RECEIVED = 'VOTE_RECEIVED';
+Game.prototype.currentRound = null;
+Game.prototype.finished = false;
 Game.prototype.players = null;
 Game.prototype.pastRounds = null;
-Game.prototype.currentRound = null;
 Game.prototype.addPlayer = function(player) {
   this.players.push(player);
   this.emit(Game.PLAYER_JOINED);
   if (this.players.length === FULL_GAME_SIZE) {
-    this.startRound();
     this.emit(Game.FULL);
+    this.startRound();
   }
 };
 Game.prototype.getNumExpectedSubmissions = function() {
@@ -47,7 +53,7 @@ Game.prototype.getState = function(player) {
              }),
     pastRounds: [{submissions:[{content: 'It was a dark and stormy night.'}]}].concat(
                     this.pastRounds.map(function(round) {
-                      return this.round.getHistoryState()
+                      return round.getHistoryState()
                     })
                   )
 
@@ -56,6 +62,22 @@ Game.prototype.getState = function(player) {
 // FIXME: this feels semi-bad
 Game.prototype.startRound = function() {
   this.currentRound = new Round(this.players);
+  // this seems like an encapsulation break... should it be the round requesting submissions?
+  this.emit(Game.SUBMISSIONS_REQUESTED);
+};
+Game.prototype.endRound = function() {
+  this.pastRounds.push(this.currentRound);
+  this.currentRound.submissions.forEach(function(submission) {
+    submission.player.score += submission.getScore();
+  });
+  this.currentRound = null;
+  var finished = this.players.some(function(player) {
+    return player.score > WINNING_SCORE;
+  });
+  if (finished) {
+    this.finished = true;
+    this.emit(Game.FINISHED);
+  }
 };
 
 // FIXME: weird interface, not sure about this
@@ -177,6 +199,19 @@ AStorytellingGameServer.on('connection', function(ws) {
             game: currentGame.getState(currentPlayer)
           }));
         });
+        currentGame.on(Game.FINISHED, function() {
+          ws.send(JSON.stringify({
+            code: 'finished',
+            game: currentGame.getState(currentPlayer)
+          }));
+        });
+        currentGame.on(Game.SUBMISSIONS_REQUESTED, function() {
+          ws.send(JSON.stringify({
+            code: 'submit',
+            message: 'Please submit your content. Send a response like {"code":"submitResponse","content":"Dr. Frankenstein was busy at work."}',
+            game: currentGame.getState(currentPlayer)
+          }));
+        });
         currentGame.on(Game.SUBMISSION_RECEIVED, function() {
           ws.send(JSON.stringify({
             code: 'submissionReceived',
@@ -193,13 +228,6 @@ AStorytellingGameServer.on('connection', function(ws) {
         currentGame.on(Game.VOTE_RECEIVED, function() {
           ws.send(JSON.stringify({
             code: 'voteReceived',
-            game: currentGame.getState(currentPlayer)
-          }));
-        });
-        currentGame.on(Game.FULL, function() {
-          ws.send(JSON.stringify({
-            code: 'submit',
-            message: 'Please submit your content. Send a response like {"code":"submitResponse","content":"Dr. Frankenstein was busy at work."}',
             game: currentGame.getState(currentPlayer)
           }));
         });
@@ -271,6 +299,12 @@ AStorytellingGameServer.on('connection', function(ws) {
         currentRound.remainingVoters.splice(currentRound.remainingVoters.indexOf(currentPlayer), 1);
         // weird place to put this?
         currentGame.emit(Game.VOTE_RECEIVED);
+        if (currentRound.remainingVoters.length === 0) {
+          currentGame.endRound();
+          if (!currentGame.finished) {
+            currentGame.startRound();
+          }
+        }
         break;
       default:
         log('Unrecognized code %s', messageObj.code);
