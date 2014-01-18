@@ -1,8 +1,7 @@
 // TODO
 //
-// Add voting mechanism
-// Add round ending mechanism
-// Add way to show how many votes are in
+// Figure out how to deploy app. Why isn't it working when run from DigitalOcean???
+// Get package and deploy pipeline for frontend
 //
 var WebSocketServer = require('ws').Server;
 var EventEmitter = require('events').EventEmitter;
