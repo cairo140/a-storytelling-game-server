@@ -10,7 +10,7 @@ var util = require("util");
 var FULL_GAME_SIZE = 3;
 var port = process.env.PORT || 8080
 
-var clientIdIncrementer = 0;
+var clientIdIncrementer = 1;
 
 var Game = function() {
   this.id = Game.idIncrementer++;
@@ -19,7 +19,7 @@ var Game = function() {
   this.currentRound = new Round();
 };
 util.inherits(Game, EventEmitter);
-Game.idIncrementer = 0;
+Game.idIncrementer = 1;
 Game.FULL = 'FULL';
 Game.PLAYER_JOINED = 'PLAYER_JOINED';
 Game.SUBMISSION_RECEIVED = 'SUBMISSION_RECEIVED';
@@ -86,7 +86,7 @@ Round.prototype.getHistoryState = function() {
 var Player = function() {
   this.id = Player.idIncrementer++;
 };
-Player.idIncrementer = 0;
+Player.idIncrementer = 1;
 Player.prototype.name = '';
 // this is a denormalized value and can be derived from the round submission scores
 Player.prototype.score = 0;
@@ -102,7 +102,7 @@ var Submission = function() {
   this.id = Submission.idIncrementer++;
   this.votes = [];
 };
-Submission.idIncrementer = 0;
+Submission.idIncrementer = 1;
 Submission.prototype.content = '';
 Submission.prototype.player = null;
 Submission.prototype.votes = null;
