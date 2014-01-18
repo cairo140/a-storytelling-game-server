@@ -15,7 +15,7 @@ var clientIdIncrementer = 0;
 var Game = function() {
   this.id = Game.idIncrementer++;
   this.players = [];
-  this.pastRounds = [{content: 'It was a dark and stormy night.'}];
+  this.pastRounds = [];
   this.currentRound = new Round();
 };
 util.inherits(Game, EventEmitter);
@@ -41,9 +41,12 @@ Game.prototype.getState = function(player) {
     players: this.players.map(function(player) {
                return player.getState();
              }),
-    pastRounds: this.pastRounds.map(function(round) {
-                  return this.round.getHistoryState()
-                })
+    pastRounds: [{content: 'It was a dark and stormy night.'}].concat(
+                    this.pastRounds.map(function(round) {
+                      return this.round.getHistoryState()
+                    })
+                  )
+
   }
 };
 
