@@ -61,7 +61,7 @@ Round.prototype.getVotingState = function(player) {
     submissions: this.submissions.map(function(submission) {
                    var obj = {
                      content: submission.content,
-                     id: submission.id,
+                     id: submission.id
                    };
                    if (submission.player === player) {
                      obj['player'] = player.id;
@@ -77,7 +77,7 @@ Round.prototype.getHistoryState = function() {
                      content: submission.content,
                      id: submission.id,
                      player: submission.player.id,
-                     score: submission.score
+                     score: submission.getScore()
                    };
                  })
   }
@@ -98,10 +98,17 @@ Player.prototype.getState = function() {
   }
 };
 
-var Submission = function() {};
+var Submission = function() {
+  this.id = Submission.idIncrementer++;
+  this.votes = [];
+};
+Submission.idIncrementer = 0;
 Submission.prototype.content = '';
 Submission.prototype.player = null;
-Submission.prototype.score = 0;
+Submission.prototype.votes = null;
+Submission.prototype.getScore = function() {
+  return this.votes.length;
+}
 
 var AStorytellingGameServer = new WebSocketServer({port: port});
 AStorytellingGameServer.pendingGame = null;
