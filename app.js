@@ -151,7 +151,7 @@ AStorytellingGameServer.on('connection', function(ws) {
         });
         currentGame.on(Game.SUBMISSION_RECEIVED, function() {
           ws.send(JSON.stringify({
-            code: 'gameUpdate',
+            code: 'submissionReceived',
             game: currentGame.getState()
           }));
         });
