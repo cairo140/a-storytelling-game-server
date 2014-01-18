@@ -23,6 +23,7 @@ Game.FULL = 'FULL';
 Game.PLAYER_JOINED = 'PLAYER_JOINED';
 Game.SUBMISSION_RECEIVED = 'SUBMISSION_RECEIVED';
 Game.VOTES_REQUESTED = 'VOTES_REQUESTED';
+Game.VOTE_RECEIVED = 'VOTE_RECEIVED';
 Game.prototype.players = null;
 Game.prototype.pastRounds = null;
 Game.prototype.currentRound = null;
@@ -66,7 +67,7 @@ Round.prototype.remainingVoters = null;
 Round.prototype.submissions = null;
 Round.prototype.voting = false;
 Round.prototype.getVotingState = function(player) {
-  return {
+  var obj = {
     submissions: this.submissions.map(function(submission) {
                    var obj = {
                      content: submission.content,
@@ -76,8 +77,15 @@ Round.prototype.getVotingState = function(player) {
                      obj['player'] = player.id;
                    }
                    return obj;
-                 })
+                 }),
+    voting: this.voting
   };
+  if (this.voting) {
+    obj['remainingVoters'] = this.remainingVoters.map(function(player) {
+      return player.id;
+    });
+  }
+  return obj;
 };
 Round.prototype.getHistoryState = function() {
   return {
@@ -182,6 +190,12 @@ AStorytellingGameServer.on('connection', function(ws) {
             game: currentGame.getState(currentPlayer)
           }));
         });
+        currentGame.on(Game.VOTE_RECEIVED, function() {
+          ws.send(JSON.stringify({
+            code: 'voteReceived',
+            game: currentGame.getState(currentPlayer)
+          }));
+        });
         currentGame.on(Game.FULL, function() {
           ws.send(JSON.stringify({
             code: 'submit',
@@ -208,6 +222,7 @@ AStorytellingGameServer.on('connection', function(ws) {
           // FIXME: move elsewhere?
           if (currentGame.currentRound.submissions.length === currentGame.getNumExpectedSubmissions()) {
             console.log('Game %d advancing to voting round.', currentGame.id);
+            currentGame.currentRound.voting = true;
             currentGame.emit(Game.VOTES_REQUESTED);
           }
         }
@@ -223,6 +238,39 @@ AStorytellingGameServer.on('connection', function(ws) {
           }));
           break;
         }
+        // this logic probably has room for improvement/may not belong here and should be in the model instead
+        if (currentRound.remainingVoters.indexOf(currentPlayer) === -1) {
+          log('Vote rejected from %s, who is not on the remaining voter roll.', currentPlayer.name);
+          ws.send(JSON.stringify({
+            code: 'voteRejected',
+            message: 'You are not on the voter roll. Have you already voted this round?'
+          }));
+          break;
+        }
+        var matches = currentRound.submissions.filter(function(s) {
+          return s.id === submissionId;
+        });
+        if (matches.length !== 1) {
+          log('Vote received for submission %d, but could not find.', submissionId);
+          ws.send(JSON.stringify({
+            code: 'voteRejected',
+            message: 'Could not find submission with id ' + submissionId
+          }));
+          break;
+        }
+        var submission = matches[0];
+        if (submission.player === currentPlayer) {
+          log('Vote rejected from %s for submission %d since it was own submission.', currentPlayer.name, submissionId);
+          ws.send(JSON.stringify({
+            code: 'voteRejected',
+            message: 'You cannot vote for your own submission.'
+          }));
+          break;
+        }
+        submission.votes.push(currentPlayer);
+        currentRound.remainingVoters.splice(currentRound.remainingVoters.indexOf(currentPlayer), 1);
+        // weird place to put this?
+        currentGame.emit(Game.VOTE_RECEIVED);
         break;
       default:
         log('Unrecognized code %s', messageObj.code);
