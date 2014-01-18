@@ -16,7 +16,6 @@ var Game = function() {
   this.id = Game.idIncrementer++;
   this.players = [];
   this.pastRounds = [];
-  this.currentRound = new Round();
 };
 util.inherits(Game, EventEmitter);
 Game.idIncrementer = 1;
@@ -27,11 +26,11 @@ Game.VOTES_REQUESTED = 'VOTES_REQUESTED';
 Game.prototype.players = null;
 Game.prototype.pastRounds = null;
 Game.prototype.currentRound = null;
-Game.prototype.voting = false;
 Game.prototype.addPlayer = function(player) {
   this.players.push(player);
   this.emit(Game.PLAYER_JOINED);
   if (this.players.length === FULL_GAME_SIZE) {
+    this.startRound();
     this.emit(Game.FULL);
   }
 };
@@ -40,7 +39,7 @@ Game.prototype.getNumExpectedSubmissions = function() {
 };
 Game.prototype.getState = function(player) {
   return {
-    currentRound : this.currentRound.getVotingState(player),
+    currentRound : this.currentRound === null ? null : this.currentRound.getVotingState(player),
     id: this.id,
     players: this.players.map(function(player) {
                return player.getState();
@@ -53,9 +52,19 @@ Game.prototype.getState = function(player) {
 
   }
 };
+// FIXME: this feels semi-bad
+Game.prototype.startRound = function() {
+  this.currentRound = new Round(this.players);
+};
 
-var Round = function() {};
-Round.prototype.submissions = [];
+// FIXME: weird interface, not sure about this
+var Round = function(players) {
+  this.remainingVoters = players.slice(0);
+  this.submissions = [];
+};
+Round.prototype.remainingVoters = null;
+Round.prototype.submissions = null;
+Round.prototype.voting = false;
 Round.prototype.getVotingState = function(player) {
   return {
     submissions: this.submissions.map(function(submission) {
@@ -68,8 +77,8 @@ Round.prototype.getVotingState = function(player) {
                    }
                    return obj;
                  })
-  }
-}
+  };
+};
 Round.prototype.getHistoryState = function() {
   return {
     submissions: this.submissions.map(function(submission) {
@@ -80,8 +89,8 @@ Round.prototype.getHistoryState = function() {
                      score: submission.getScore()
                    };
                  })
-  }
-}
+  };
+};
 
 var Player = function() {
   this.id = Player.idIncrementer++;
@@ -184,6 +193,7 @@ AStorytellingGameServer.on('connection', function(ws) {
         break;
       case 'submitResponse':
         if (currentGame.currentRound.submissions.some(function(s) { return s.player === currentPlayer })) {
+          log('Submission rejected from %s, since the player already submitted.', currentPlayer.name);
           ws.send(JSON.stringify({
             code: 'submitRejected',
             message: 'You have already submitted.'
@@ -203,6 +213,16 @@ AStorytellingGameServer.on('connection', function(ws) {
         }
         break;
       case 'voteResponse':
+        var submissionId = messageObj.submission;
+        var currentRound = currentGame.currentRound;
+        if (!currentRound.voting) {
+          log('Vote received from %s, but voting is not open.', currentPlayer.name);
+          ws.send(JSON.stringify({
+            code: 'voteRejected',
+            message: 'Voting is not currently open.'
+          }));
+          break;
+        }
         break;
       default:
         log('Unrecognized code %s', messageObj.code);
