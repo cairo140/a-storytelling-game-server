@@ -1,6 +1,9 @@
-// redis = require 'redis'
-// redisClient = redis.createClient()
-
+// TODO
+//
+// Add voting mechanism
+// Add round ending mechanism
+// Add way to show how many votes are in
+//
 var WebSocketServer = require('ws').Server;
 var EventEmitter = require('events').EventEmitter;
 var util = require("util");
@@ -12,7 +15,7 @@ var clientIdIncrementer = 0;
 var Game = function() {
   this.id = Game.idIncrementer++;
   this.players = [];
-  this.pastRounds = [];
+  this.pastRounds = [{content: 'It was a dark and stormy night.'}];
   this.currentRound = new Round();
 };
 util.inherits(Game, EventEmitter);
@@ -145,7 +148,7 @@ AStorytellingGameServer.on('connection', function(ws) {
         });
         currentGame.on(Game.UPDATE, function() {
           ws.send(JSON.stringify({
-            code: 'update',
+            code: 'gameUpdate',
             game: currentGame.getState()
           }));
         });
