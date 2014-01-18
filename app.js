@@ -169,6 +169,7 @@ AStorytellingGameServer.on('connection', function(ws) {
         currentGame.on(Game.VOTES_REQUESTED, function() {
           ws.send(JSON.stringify({
             code: 'vote',
+            message: 'Please send your vote. Send something like {"code":"voteResponse","submission":5}',
             game: currentGame.getState(currentPlayer)
           }));
         });
