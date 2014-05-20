@@ -52,48 +52,8 @@ AStorytellingGameServer.on('connection', function(ws) {
         currentPlayer = new Player();
         currentPlayer.name = messageObj.name;
         currentGame = AStorytellingGameServer.pendingGame;
-        ws.send(JSON.stringify({
-          code: 'currentPlayerUpdate',
-          player: currentPlayer.getState(currentPlayer)
-        }));
-        currentGame.on(Game.PLAYER_JOINED, function() {
-          ws.send(JSON.stringify({
-            code: 'playerJoined',
-            game: currentGame.getState(currentPlayer)
-          }));
-        });
-        currentGame.on(Game.FINISHED, function() {
-          ws.send(JSON.stringify({
-            code: 'finished',
-            game: currentGame.getState(currentPlayer)
-          }));
-        });
-        currentGame.on(Game.SUBMISSIONS_REQUESTED, function() {
-          ws.send(JSON.stringify({
-            code: 'submit',
-            message: 'Please submit your content. Send a response like {"code":"submitResponse","content":"Dr. Frankenstein was busy at work."}',
-            game: currentGame.getState(currentPlayer)
-          }));
-        });
-        currentGame.on(Game.SUBMISSION_RECEIVED, function() {
-          ws.send(JSON.stringify({
-            code: 'submissionReceived',
-            game: currentGame.getState(currentPlayer)
-          }));
-        });
-        currentGame.on(Game.VOTES_REQUESTED, function() {
-          ws.send(JSON.stringify({
-            code: 'vote',
-            message: 'Please send your vote. Send something like {"code":"voteResponse","submission":5}',
-            game: currentGame.getState(currentPlayer)
-          }));
-        });
-        currentGame.on(Game.VOTE_RECEIVED, function() {
-          ws.send(JSON.stringify({
-            code: 'voteReceived',
-            game: currentGame.getState(currentPlayer)
-          }));
-        });
+        currentPlayer.join(currentGame);
+        currentPlayer.connect(ws);
         currentGame.addPlayer(currentPlayer);
         break;
       case 'submitResponse':
